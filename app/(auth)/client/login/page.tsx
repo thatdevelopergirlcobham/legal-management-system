@@ -21,7 +21,7 @@ export default function ClientLogin() {
     setError('');
     const user = login(email, password, 'client');
     if (user && user.role === 'CLIENT') {
-      router.push('/dashboard');
+      router.push('/client/dashboard');
     } else {
       setError('Invalid credentials or access denied. Only Client role allowed.');
     }

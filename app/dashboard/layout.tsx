@@ -26,10 +26,10 @@ export default function DashboardLayout({
   }
 
   const links = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/cases', label: 'Cases', icon: Briefcase },
-    { href: '/appointments', label: 'Appointments', icon: Calendar },
-    ...(currentUser.role === 'ADMIN' ? [{ href: '/admin/users', label: 'User Management', icon: Users }] : []),
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard as React.ComponentType<{ className: string }> },
+    { href: '/dashboard/cases', label: 'Cases', icon: Briefcase as React.ComponentType<{ className: string }> },
+    { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar as React.ComponentType<{ className: string }> },
+    ...(currentUser.role === 'ADMIN' ? [{ href: '/dashboard/admin/users', label: 'User Management', icon: Users as React.ComponentType<{ className: string }> }] : []),
   ];
 
   return (

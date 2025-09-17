@@ -18,7 +18,7 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
       <div className="space-y-6">
         <h2 className="text-2xl font-bold">Case Not Found</h2>
         <p className="text-muted-foreground">The requested case could not be found.</p>
-        <Button onClick={() => router.push('/cases')}>Back to Cases</Button>
+        <Button onClick={() => router.push('/client/cases')}>Back to Cases</Button>
       </div>
     );
   }
@@ -41,11 +41,11 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
             <p><strong>Last Updated:</strong> {format(new Date(caseData.updatedAt), 'MMM d, yyyy')}</p>
           </div>
           <div className="mt-6 flex space-x-2">
-            <Button onClick={() => router.push('/practitioners')}>
+            <Button onClick={() => router.push('/client/practitioners')}>
               <MessageSquare className="h-4 w-4 mr-2" />
               Contact Your Lawyer
             </Button>
-            <Button variant="outline" onClick={() => router.push('/cases')}>Back to Cases</Button>
+            <Button variant="outline" onClick={() => router.push('/client/cases')}>Back to Cases</Button>
           </div>
         </CardContent>
       </Card>

@@ -26,9 +26,9 @@ export default function ClientLayout({
   }
 
   const links = [
-    { href: '/dashboard', label: 'My Dashboard', icon: Briefcase },
-    { href: '/cases', label: 'My Cases', icon: Briefcase },
-    { href: '/practitioners', label: 'Practitioners', icon: Users },
+    { href: '/client/dashboard', label: 'My Dashboard', icon: Briefcase as React.ComponentType<{ className: string }> },
+    { href: '/client/cases', label: 'My Cases', icon: Briefcase as React.ComponentType<{ className: string }> },
+    { href: '/client/practitioners', label: 'Practitioners', icon: Users as React.ComponentType<{ className: string }> },
   ];
 
   return (
@@ -37,7 +37,7 @@ export default function ClientLayout({
         <div className="flex items-center space-x-4">
           <Briefcase className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-semibold">
-            <Link href="/dashboard">Legal CMS - Client</Link>
+            <Link href="/client/dashboard">Legal CMS - Client</Link>
           </h1>
         </div>
         <div className="flex items-center space-x-4">
@@ -59,7 +59,7 @@ export default function ClientLayout({
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <CollapsibleSidebar links={links} role={currentUser.role} />
+        <CollapsibleSidebar links={links.map(link => ({ ...link, icon: link.icon as React.ComponentType<{ className: string }> }))} role={currentUser.role} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

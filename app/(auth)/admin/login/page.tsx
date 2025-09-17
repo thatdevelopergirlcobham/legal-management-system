@@ -21,7 +21,7 @@ export default function AdminLogin() {
     setError('');
     const user = login(email, password, 'practitioner');
     if (user && user.role === 'ADMIN') {
-      router.push('/dashboard');
+      router.push('/dashboard/admin');
     } else {
       setError('Invalid credentials or access denied. Only Admin role allowed.');
     }

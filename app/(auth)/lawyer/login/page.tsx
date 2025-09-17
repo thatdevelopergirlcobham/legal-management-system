@@ -21,7 +21,7 @@ export default function LawyerLogin() {
     setError('');
     const user = login(email, password, 'practitioner');
     if (user && user.role === 'STAFF') {
-      router.push('/dashboard');
+      router.push('/dashboard/staff');
     } else {
       setError('Invalid credentials or access denied. Only Staff/Lawyer role allowed.');
     }

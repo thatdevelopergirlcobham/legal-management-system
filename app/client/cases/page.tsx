@@ -40,7 +40,7 @@ export default function ClientCasesPage() {
                   <TableCell>{getStaffName(c.staffId)}</TableCell>
                   <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/cases/${c.id}`)}>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/client/cases/${c.id}`)}>
                       View Details
                     </Button>
                   </TableCell>
