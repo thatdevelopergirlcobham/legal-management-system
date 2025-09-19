@@ -4,11 +4,23 @@ import Link from 'next/link';
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const CollapsibleSidebar = ({ links, role }: { links: { href: string; label: string; icon: React.ComponentType<{ className: string }> }[]; role: string }) => {
+type UserRole = 'ADMIN' | 'LAWYER' | 'CLIENT' | 'STAFF';
+
+type CollapsibleSidebarProps = {
+  links: { href: string; label: string; icon: React.ComponentType<{ className: string }> }[];
+  role: UserRole;
+};
+
+export const CollapsibleSidebar = ({
+  links,
+  role
+}: CollapsibleSidebarProps) => {
+  // Add role-based class for future styling or functionality
+  const roleClass = `role-${role.toLowerCase()}`;
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`hidden md:flex flex-col border-r border-border px-5 py-6 space-y-6 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}> 
+    <aside className={`hidden md:flex flex-col border-r border-border px-5 py-6 space-y-6 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} ${roleClass}`}> 
       <nav className="flex flex-col space-y-1">
         {links.map((link) => (
           <Link
