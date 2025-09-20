@@ -33,11 +33,11 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#0a192f] to-background">
-      <header className="border-b border-border px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm px-6 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center space-x-4">
           <Briefcase className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-semibold">
+          <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             <Link href="/dashboard">Legal CMS - Practitioner</Link>
           </h1>
         </div>

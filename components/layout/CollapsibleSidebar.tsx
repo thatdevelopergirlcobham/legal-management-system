@@ -20,16 +20,16 @@ export const CollapsibleSidebar = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`hidden md:flex flex-col border-r border-border px-5 py-6 space-y-6 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} ${roleClass}`}> 
-      <nav className="flex flex-col space-y-1">
+    <aside className={`hidden md:flex flex-col border-r border-border bg-card/30 backdrop-blur-sm px-4 py-6 space-y-6 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} ${roleClass}`}> 
+      <nav className="flex flex-col space-y-2">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground transition-colors group"
           >
-            <link.icon className="h-4 w-4 mr-2" />
-            {!isCollapsed && <span>{link.label}</span>}
+            <link.icon className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform" />
+            {!isCollapsed && <span className="group-hover:translate-x-1 transition-transform">{link.label}</span>}
           </Link>
         ))}
       </nav>
