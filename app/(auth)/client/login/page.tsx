@@ -22,14 +22,14 @@ export default function ClientLogin() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
       const user = await login(email, password, 'CLIENT');
       if (user) {
         router.push('/client/dashboard');
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during login. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

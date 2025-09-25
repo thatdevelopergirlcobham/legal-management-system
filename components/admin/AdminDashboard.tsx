@@ -6,7 +6,7 @@ import { Users, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export const AdminDashboard = () => {
-  const { users, cases, isLoading } = useData();
+  const { users, cases } = useData();
   const router = useRouter();
 
   const totalUsers = users?.length || 0;
@@ -50,7 +50,7 @@ export const AdminDashboard = () => {
           <Users className="h-4 w-4 mr-2" />
           Manage Users
         </Button>
-        <Button onClick={() => router.push('/cases')}>
+        <Button onClick={() => router.push('/dashboard/cases')}>
           <Briefcase className="h-4 w-4 mr-2" />
           Manage Cases
         </Button>

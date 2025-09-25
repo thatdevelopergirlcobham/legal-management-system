@@ -14,7 +14,7 @@ export const ClientSidebar = () => {
           My Dashboard
         </Link>
         <Link
-          href="/cases"
+          href="/client/cases"
           className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground"
         >
           <Briefcase className="h-4 w-4 mr-2" />

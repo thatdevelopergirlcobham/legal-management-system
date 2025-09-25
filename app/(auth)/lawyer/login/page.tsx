@@ -22,14 +22,14 @@ export default function LawyerLogin() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
       const user = await login(email, password, 'STAFF');
       if (user) {
         router.push('/dashboard/staff');
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during login. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -59,9 +59,10 @@ export default function AdminRegister() {
       } else {
         setError('Registration failed. Please try again.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      setError(error.message || 'An error occurred during registration. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during registration. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

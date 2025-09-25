@@ -33,14 +33,14 @@ export default function AdminLogin() {
     setError('');
     setSuccessMessage('');
     setIsLoading(true);
-
     try {
       const user = await login(email, password, 'ADMIN');
       if (user) {
         router.push('/dashboard/admin');
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during login. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during login. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

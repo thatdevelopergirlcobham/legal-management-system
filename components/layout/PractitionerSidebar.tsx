@@ -17,14 +17,14 @@ export const PractitionerSidebar = () => {
           Dashboard
         </Link>
         <Link
-          href="/cases"
+          href="/dashboard/cases"
           className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground"
         >
           <Briefcase className="h-4 w-4 mr-2" />
           Cases
         </Link>
         <Link
-          href="/appointments"
+          href="/dashboard/appointments"
           className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground"
         >
           <Calendar className="h-4 w-4 mr-2" />
