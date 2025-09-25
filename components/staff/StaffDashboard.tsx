@@ -1,12 +1,18 @@
 'use client';
+import { useState } from 'react';
 import { useData } from '@/context/DataContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { ChatSession } from '@/components/chat/ChatSession';
 
 export const StaffDashboard = () => {
   const { cases, currentUser, findUserById } = useData();
   const myCases = cases.filter(c => c.staffId === currentUser?.id);
+  const [selectedCase, setSelectedCase] = useState<string | null>(null);
+  const selectedClientId = selectedCase 
+    ? cases.find(c => c.id === selectedCase)?.clientId 
+    : null;
 
   return (
     <div className="space-y-6">
@@ -40,38 +46,58 @@ export const StaffDashboard = () => {
           </CardContent>
         </Card>
       </div>
-      <h3 className="text-xl font-semibold">My Cases</h3>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Case Number</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {myCases.length > 0 ? (
-              myCases.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.caseNumber}</TableCell>
-                  <TableCell>{c.title}</TableCell>
-                  <TableCell>{c.status}</TableCell>
-                  <TableCell>{findUserById(c.clientId)?.name || 'Unknown'}</TableCell>
-                  <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`lg:col-span-${selectedCase ? '2' : '3'}`}>
+          <h3 className="text-xl font-semibold">My Cases</h3>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Case Number</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Updated</TableHead>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  You have no active cases.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {myCases.length > 0 ? (
+                  myCases.map((c) => (
+                    <TableRow 
+                      key={c.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedCase(c.id === selectedCase ? null : c.id)}
+                    >
+                      <TableCell className="font-medium">{c.caseNumber}</TableCell>
+                      <TableCell>{c.title}</TableCell>
+                      <TableCell>{c.status}</TableCell>
+                      <TableCell>{findUserById(c.clientId)?.name || 'Unknown'}</TableCell>
+                      <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      You have no active cases.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        
+        {selectedCase && selectedClientId && (
+          <div className="lg:col-span-1">
+            <h3 className="text-xl font-semibold">
+              Chat with {findUserById(selectedClientId)?.name}
+            </h3>
+            <div className="h-[600px]">
+              <ChatSession otherUserId={selectedClientId} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

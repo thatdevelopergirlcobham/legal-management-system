@@ -17,12 +17,12 @@ export default function ClientRegister() {
   const router = useRouter();
   const { register, login } = useData();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      register(name, email, password);
-      const user = login(email, password, 'client');
+      await register(name, email, password, 'CLIENT');
+      const user = await login(email, password, 'client');
       if (user) {
         router.push('/dashboard');
       } else {

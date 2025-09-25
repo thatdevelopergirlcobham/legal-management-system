@@ -1,29 +1,57 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useData } from '@/context/DataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, ArrowLeft } from 'lucide-react';
+import { Lock, ArrowLeft, UserPlus, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useData();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check for success message from registration
+    const message = searchParams.get('message');
+    if (message) {
+      setSuccessMessage(message);
+      // Clear the URL parameter
+      router.replace('/admin/login', undefined);
+    }
+  }, [searchParams, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const user = login(email, password, 'practitioner');
-    if (user && user.role === 'ADMIN') {
-      router.push('/dashboard/admin');
-    } else {
-      setError('Invalid credentials or access denied. Only Admin role allowed.');
+    setSuccessMessage('');
+    setIsLoading(true);
+
+    try {
+      // Use the actual form values for database authentication
+      const user = await login(email, password, 'practitioner');
+      if (user) {
+        router.push('/dashboard/admin');
+      } else {
+        setError('Invalid email or password');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message?.includes('MONGODB_URI')) {
+        setError('Database connection error. Please check your environment configuration.');
+      } else {
+        setError('An error occurred during login. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,16 +63,24 @@ export default function AdminLogin() {
           <CardDescription>Manage the legal system</CardDescription>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center">
+              <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+              <p className="text-sm text-green-800">{successMessage}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@legalcms.com"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -52,21 +88,26 @@ export default function AdminLogin() {
               <Input
                 id="password"
                 type="password"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
               <Lock className="mr-2 h-4 w-4" />
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>
-        <CardFooter>
-          <p className="text-sm text-muted-foreground text-center w-full">
-            For admin use only. <Link href="/" className="text-primary hover:underline flex items-center justify-center mt-2"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Home</Link>
+        <CardFooter className="flex flex-col space-y-2">
+          <p className="text-sm text-muted-foreground text-center">
+            Don't have an account? <Link href="/admin/register" className="text-primary hover:underline flex items-center justify-center"><UserPlus className="h-4 w-4 mr-1" /> Register Admin</Link>
+          </p>
+          <p className="text-sm text-muted-foreground text-center">
+            <Link href="/" className="text-primary hover:underline flex items-center justify-center"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Home</Link>
           </p>
         </CardFooter>
       </Card>

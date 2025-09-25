@@ -16,14 +16,20 @@ export default function ClientLogin() {
   const router = useRouter();
   const { login } = useData();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const user = login(email, password, 'client');
-    if (user && user.role === 'CLIENT') {
-      router.push('/client/dashboard');
-    } else {
-      setError('Invalid credentials or access denied. Only Client role allowed.');
+
+    try {
+      const user = await login(email, password, 'client');
+      if (user && user.role === 'CLIENT') {
+        router.push('/client/dashboard');
+      } else {
+        setError('Invalid credentials or access denied. Only Client role allowed.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An error occurred during login. Please try again.');
     }
   };
 

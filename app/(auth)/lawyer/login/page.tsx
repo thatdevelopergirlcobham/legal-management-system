@@ -16,10 +16,10 @@ export default function LawyerLogin() {
   const router = useRouter();
   const { login } = useData();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const user = login(email, password, 'practitioner');
+    const user = await login(email, password, 'practitioner');
     if (user && user.role === 'STAFF') {
       router.push('/dashboard/staff');
     } else {
