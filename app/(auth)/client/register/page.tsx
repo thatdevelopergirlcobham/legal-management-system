@@ -22,7 +22,7 @@ export default function ClientRegister() {
     setError('');
     try {
       await register(name, email, password, 'CLIENT');
-      const user = await login(email, password, 'client');
+      const user = await login(email, password, 'CLIENT');
       if (user) {
         router.push('/dashboard');
       } else {

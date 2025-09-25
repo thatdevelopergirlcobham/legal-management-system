@@ -21,7 +21,7 @@ export const DocumentList = ({ caseId }: { caseId: string }) => {
           <TableBody>
             {caseDocuments.length > 0 ? (
               caseDocuments.map((doc) => (
-                <TableRow key={doc.id}>
+                <TableRow key={doc._id}>
                   <TableCell className="font-medium">{doc.name}</TableCell>
                   <TableCell>{format(new Date(doc.uploadedAt), 'MMM d, yyyy HH:mm')}</TableCell>
                 </TableRow>

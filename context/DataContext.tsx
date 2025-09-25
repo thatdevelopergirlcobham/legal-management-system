@@ -17,12 +17,16 @@ import {
   getAllUsers,
   createCase as createCaseMock,
   updateCase as updateCaseMock,
-  deleteCase as deleteCaseMock
+  deleteCase as deleteCaseMock,
+  createUser as createUserMock,
+  createDocument as createDocumentMock
 } from '@/lib/mockData';
 
 interface DataContextType {
   currentUser: IUser | null;
   login: (email: string, password: string, expectedRole: 'CLIENT' | 'STAFF' | 'ADMIN') => Promise<IUser | null>;
+  register: (name: string, email: string, password: string, role: 'CLIENT' | 'STAFF' | 'ADMIN') => Promise<IUser | null>;
+  refreshUsers: () => Promise<void>;
   logout: () => void;
   users: IUser[];
   cases: ICase[];
@@ -34,6 +38,7 @@ interface DataContextType {
   createCase: (caseData: Omit<ICase, '_id' | 'createdAt' | 'updatedAt'>) => Promise<ICase>;
   updateCase: (id: string, updates: Partial<ICase>) => Promise<ICase | null>;
   deleteCase: (id: string) => Promise<boolean>;
+  uploadDocument: (caseId: string, fileName: string) => Promise<IDocument>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -208,6 +213,58 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
+  const refreshUsers = async () => {
+    try {
+      const usersData = await getAllUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+    }
+  };
+
+  const register = async (name: string, email: string, password: string, role: 'CLIENT' | 'STAFF' | 'ADMIN') => {
+    try {
+      const existingUser = await findUserByEmail(email);
+      if (existingUser) {
+        throw new Error('An account with this email already exists.');
+      }
+
+      const newUser = await createUserMock({ name, email, password, role });
+      // Update local state with the new user
+      setUsers(prevUsers => [...prevUsers, newUser]);
+      return newUser;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
+
+  const uploadDocument = async (caseId: string, fileName: string) => {
+    if (!currentUser) {
+      throw new Error('You must be logged in to upload documents.');
+    }
+
+    const newDocumentData = {
+      name: fileName,
+      originalName: fileName,
+      filePath: `/uploads/${fileName.toLowerCase().replace(/\s+/g, '-')}`,
+      fileSize: Math.floor(Math.random() * 5 * 1024 * 1024), // Random size up to 5MB
+      mimeType: 'application/pdf',
+      caseId: caseId,
+      uploadedBy: currentUser._id,
+      uploadedAt: new Date(),
+    };
+
+    try {
+      const newDoc = await createDocumentMock(newDocumentData);
+      setDocuments(prev => [...prev, newDoc]);
+      return newDoc;
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      throw error;
+    }
+  };
+
   const deleteCase = async (id: string) => {
     try {
       const success = await deleteCaseMock(id);
@@ -231,6 +288,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       value={{ 
         currentUser, 
         login, 
+        register,
+        refreshUsers,
         logout, 
         users,
         cases, 
@@ -241,7 +300,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         createCase,
         updateCase,
-        deleteCase
+        deleteCase,
+        uploadDocument
       }}
     >
       {children}

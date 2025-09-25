@@ -1,7 +1,6 @@
-// lib/mockData.ts
 "use server";
 
-// Types for our mock data
+// TYPES
 export interface IUser {
   _id: string;
   name: string;
@@ -65,14 +64,14 @@ export interface IChatMessage {
   updatedAt?: Date;
 }
 
-// Mock data storage
-let users: (IUser & { comparePassword?: (candidatePassword: string) => Promise<boolean> })[] = [];
+
+// MOCK DATA
+let users: IUser[] = [];
 let cases: ICase[] = [];
 let appointments: IAppointment[] = [];
 let documents: IDocument[] = [];
 let chatMessages: IChatMessage[] = [];
 
-// Initialize mock data with the required credentials
 function initializeMockData() {
   if (users.length === 0) {
     users = [
@@ -83,10 +82,7 @@ function initializeMockData() {
         password: 'admin123',
         role: 'ADMIN',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        comparePassword: async (candidatePassword: string) => {
-          return candidatePassword === 'admin123';
-        }
+        updatedAt: new Date()
       },
       {
         _id: 'client-001',
@@ -95,10 +91,7 @@ function initializeMockData() {
         password: 'client123',
         role: 'CLIENT',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        comparePassword: async (candidatePassword: string) => {
-          return candidatePassword === 'client123';
-        }
+        updatedAt: new Date()
       },
       {
         _id: 'lawyer-001',
@@ -107,10 +100,7 @@ function initializeMockData() {
         password: 'lawyer123',
         role: 'STAFF',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        comparePassword: async (candidatePassword: string) => {
-          return candidatePassword === 'lawyer123';
-        }
+        updatedAt: new Date()
       }
     ];
 
@@ -198,60 +188,52 @@ function initializeMockData() {
   }
 }
 
-// User operations
+// ========== USER ==========
 export async function findUserByEmail(email: string, password?: string, expectedRole?: 'CLIENT' | 'STAFF' | 'ADMIN'): Promise<IUser | null> {
   initializeMockData();
   const user = users.find(user => user.email === email);
-  if (!user) return null;
 
-  if (password && expectedRole) {
-    const isPasswordValid = await user.comparePassword?.(password);
-    if (!isPasswordValid) {
-      throw new Error('Invalid password');
-    }
-    if (user.role !== expectedRole) {
-      throw new Error(`Access denied: ${expectedRole} role required`);
-    }
+  if (!user) {
+    return null;
   }
 
-  // Return a plain user object without the comparePassword function
-  const { comparePassword, ...plainUser } = user;
-  return plainUser;
+  if (password && user.password !== password) {
+    return null;
+  }
+
+  if (expectedRole && user.role !== expectedRole) {
+    return null;
+  }
+
+  return user;
 }
 
 export async function findUserById(id: string): Promise<IUser | null> {
   initializeMockData();
-  const user = users.find(user => user._id === id);
-  if (!user) return null;
-  const { comparePassword, ...plainUser } = user;
-  return plainUser;
+  return users.find(user => user._id === id) || null;
 }
 
 export async function createUser(userData: Omit<IUser, '_id' | 'createdAt' | 'updatedAt'>): Promise<IUser> {
   initializeMockData();
-  const newUser: IUser & { comparePassword?: (candidatePassword: string) => Promise<boolean> } = {
+  const newUser: IUser = {
     _id: `user-${Date.now()}`,
     ...userData,
     createdAt: new Date(),
-    updatedAt: new Date(),
-    comparePassword: async (candidatePassword: string) => {
-      return candidatePassword === userData.password;
-    }
+    updatedAt: new Date()
   };
   users.push(newUser);
-  const {  ...plainUser } = newUser;
-  return plainUser;
+  return newUser;
 }
 
 export async function getAllUsers(): Promise<IUser[]> {
   initializeMockData();
-  return users.map(({ comparePassword, ...user }) => user);
+  return [...users];
 }
 
-// Case operations
+// ========== CASE ==========
 export async function getAllCases(): Promise<ICase[]> {
   initializeMockData();
-  return cases;
+  return [...cases];
 }
 
 export async function findCaseById(id: string): Promise<ICase | null> {
@@ -275,7 +257,6 @@ export async function updateCase(id: string, updates: Partial<ICase>): Promise<I
   initializeMockData();
   const caseIndex = cases.findIndex(c => c._id === id);
   if (caseIndex === -1) return null;
-
   cases[caseIndex] = { ...cases[caseIndex], ...updates, updatedAt: new Date() };
   return cases[caseIndex];
 }
@@ -287,10 +268,10 @@ export async function deleteCase(id: string): Promise<boolean> {
   return cases.length < initialLength;
 }
 
-// Appointment operations
+// ========== APPOINTMENT ==========
 export async function getAllAppointments(): Promise<IAppointment[]> {
   initializeMockData();
-  return appointments;
+  return [...appointments];
 }
 
 export async function findAppointmentById(id: string): Promise<IAppointment | null> {
@@ -298,11 +279,11 @@ export async function findAppointmentById(id: string): Promise<IAppointment | nu
   return appointments.find(a => a._id === id) || null;
 }
 
-export async function createAppointment(appointmentData: Omit<IAppointment, '_id' | 'createdAt' | 'updatedAt'>): Promise<IAppointment> {
+export async function createAppointment(data: Omit<IAppointment, '_id' | 'createdAt' | 'updatedAt'>): Promise<IAppointment> {
   initializeMockData();
   const newAppointment: IAppointment = {
     _id: `appointment-${Date.now()}`,
-    ...appointmentData,
+    ...data,
     createdAt: new Date(),
     updatedAt: new Date()
   };
@@ -312,11 +293,10 @@ export async function createAppointment(appointmentData: Omit<IAppointment, '_id
 
 export async function updateAppointment(id: string, updates: Partial<IAppointment>): Promise<IAppointment | null> {
   initializeMockData();
-  const appointmentIndex = appointments.findIndex(a => a._id === id);
-  if (appointmentIndex === -1) return null;
-
-  appointments[appointmentIndex] = { ...appointments[appointmentIndex], ...updates, updatedAt: new Date() };
-  return appointments[appointmentIndex];
+  const index = appointments.findIndex(a => a._id === id);
+  if (index === -1) return null;
+  appointments[index] = { ...appointments[index], ...updates, updatedAt: new Date() };
+  return appointments[index];
 }
 
 export async function deleteAppointment(id: string): Promise<boolean> {
@@ -326,10 +306,10 @@ export async function deleteAppointment(id: string): Promise<boolean> {
   return appointments.length < initialLength;
 }
 
-// Document operations
+// ========== DOCUMENT ==========
 export async function getAllDocuments(): Promise<IDocument[]> {
   initializeMockData();
-  return documents;
+  return [...documents];
 }
 
 export async function findDocumentById(id: string): Promise<IDocument | null> {
@@ -337,16 +317,16 @@ export async function findDocumentById(id: string): Promise<IDocument | null> {
   return documents.find(d => d._id === id) || null;
 }
 
-export async function createDocument(documentData: Omit<IDocument, '_id' | 'createdAt' | 'updatedAt'>): Promise<IDocument> {
+export async function createDocument(data: Omit<IDocument, '_id' | 'createdAt' | 'updatedAt'>): Promise<IDocument> {
   initializeMockData();
-  const newDocument: IDocument = {
+  const newDoc: IDocument = {
     _id: `document-${Date.now()}`,
-    ...documentData,
+    ...data,
     createdAt: new Date(),
     updatedAt: new Date()
   };
-  documents.push(newDocument);
-  return newDocument;
+  documents.push(newDoc);
+  return newDoc;
 }
 
 export async function deleteDocument(id: string): Promise<boolean> {
@@ -356,10 +336,10 @@ export async function deleteDocument(id: string): Promise<boolean> {
   return documents.length < initialLength;
 }
 
-// Chat operations
+// ========== CHAT ==========
 export async function getAllChatMessages(): Promise<IChatMessage[]> {
   initializeMockData();
-  return chatMessages;
+  return [...chatMessages];
 }
 
 export async function findChatMessageById(id: string): Promise<IChatMessage | null> {
@@ -367,16 +347,31 @@ export async function findChatMessageById(id: string): Promise<IChatMessage | nu
   return chatMessages.find(m => m._id === id) || null;
 }
 
-export async function createChatMessage(messageData: Omit<IChatMessage, '_id' | 'createdAt' | 'updatedAt'>): Promise<IChatMessage> {
+export async function createChatMessage(data: Omit<IChatMessage, '_id' | 'createdAt' | 'updatedAt'>): Promise<IChatMessage> {
   initializeMockData();
   const newMessage: IChatMessage = {
     _id: `message-${Date.now()}`,
-    ...messageData,
+    ...data,
     createdAt: new Date(),
     updatedAt: new Date()
   };
   chatMessages.push(newMessage);
   return newMessage;
+}
+
+export async function updateChatMessage(id: string, updates: Partial<IChatMessage>): Promise<IChatMessage | null> {
+  initializeMockData();
+  const index = chatMessages.findIndex(m => m._id === id);
+  if (index === -1) return null;
+  chatMessages[index] = { ...chatMessages[index], ...updates, updatedAt: new Date() };
+  return chatMessages[index];
+}
+
+export async function deleteChatMessage(id: string): Promise<boolean> {
+  initializeMockData();
+  const initialLength = chatMessages.length;
+  chatMessages = chatMessages.filter(m => m._id !== id);
+  return chatMessages.length < initialLength;
 }
 
 export async function getChatMessagesBetweenUsers(userId1: string, userId2: string): Promise<IChatMessage[]> {
@@ -387,20 +382,4 @@ export async function getChatMessagesBetweenUsers(userId1: string, userId2: stri
       (msg.sender === userId2 && msg.recipient === userId1)
     )
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-}
-
-export async function updateChatMessage(id: string, updates: Partial<IChatMessage>): Promise<IChatMessage | null> {
-  initializeMockData();
-  const messageIndex = chatMessages.findIndex(m => m._id === id);
-  if (messageIndex === -1) return null;
-
-  chatMessages[messageIndex] = { ...chatMessages[messageIndex], ...updates, updatedAt: new Date() };
-  return chatMessages[messageIndex];
-}
-
-export async function deleteChatMessage(id: string): Promise<boolean> {
-  initializeMockData();
-  const initialLength = chatMessages.length;
-  chatMessages = chatMessages.filter(m => m._id !== id);
-  return chatMessages.length < initialLength;
 }

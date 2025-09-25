@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ChatSession } from '@/components/chat/ChatSession';
-import { IUser } from '@/lib/mockData';
 
 export const StaffDashboard = () => {
   const { cases, currentUser, findUserById } = useData();

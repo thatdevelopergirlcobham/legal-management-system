@@ -1,6 +1,7 @@
 'use client';
 import { useData } from '@/context/DataContext';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -11,7 +12,21 @@ import { MessageSquare } from 'lucide-react';
 export default function CaseDetailPage({ params }: { params: { caseId: string } }) {
   const { cases, findUserById } = useData();
   const router = useRouter();
-  const caseData = cases.find(c => c.id === params.caseId);
+  const [staffName, setStaffName] = useState('Loading...');
+
+  const caseData = cases.find(c => c._id === params.caseId);
+
+  useEffect(() => {
+    if (caseData) {
+      findUserById(caseData.staffId).then(user => {
+        if (user) {
+          setStaffName(user.name);
+        } else {
+          setStaffName('Unknown');
+        }
+      });
+    }
+  }, [caseData, findUserById]);
 
   if (!caseData) {
     return (
@@ -22,8 +37,6 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
       </div>
     );
   }
-
-  const staffName = findUserById(caseData.staffId)?.name || 'Unknown';
 
   return (
     <div className="space-y-6">
@@ -38,7 +51,7 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
             <p><strong>Status:</strong> {caseData.status}</p>
             <p><strong>Description:</strong> {caseData.description}</p>
             <p><strong>Assigned Staff:</strong> {staffName}</p>
-            <p><strong>Last Updated:</strong> {format(new Date(caseData.updatedAt), 'MMM d, yyyy')}</p>
+            <p><strong>Last Updated:</strong> {caseData.updatedAt ? format(new Date(caseData.updatedAt), 'MMM d, yyyy') : 'N/A'}</p>
           </div>
           <div className="mt-6 flex space-x-2">
             <Button onClick={() => router.push('/client/practitioners')}>
@@ -49,8 +62,8 @@ export default function CaseDetailPage({ params }: { params: { caseId: string } 
           </div>
         </CardContent>
       </Card>
-      <DocumentUploader caseId={caseData.id} />
-      <DocumentList caseId={caseData.id} />
+      <DocumentUploader caseId={caseData._id} />
+      <DocumentList caseId={caseData._id} />
     </div>
   );
 };
