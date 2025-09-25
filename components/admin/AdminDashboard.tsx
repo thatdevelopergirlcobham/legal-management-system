@@ -6,12 +6,12 @@ import { Users, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export const AdminDashboard = () => {
-  const { users, cases } = useData();
+  const { users, cases, isLoading } = useData();
   const router = useRouter();
 
-  const totalUsers = users.length;
-  const totalCases = cases.length;
-  const activePractitioners = users.filter(u => u.role === 'ADMIN' || u.role === 'STAFF').length;
+  const totalUsers = users?.length || 0;
+  const totalCases = cases?.length || 0;
+  const activePractitioners = users?.filter(u => u.role === 'ADMIN' || u.role === 'STAFF').length || 0;
 
   return (
     <div className="space-y-6">

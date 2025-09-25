@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/context/DataContext';
 import Link from 'next/link';
-import { LogOut, Briefcase, Users } from 'lucide-react';
+import { LogOut, Briefcase, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar';
 
@@ -12,22 +12,37 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { currentUser, logout } = useData();
+  const { currentUser, logout, isLoading } = useData();
   const router = useRouter();
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'CLIENT') {
-      router.push('/client/login');
+    // If loading is complete and user is not logged in or is not a client, redirect appropriately
+    if (!isLoading) {
+      if (!currentUser) {
+        router.push('/');
+      } else if (currentUser.role !== 'CLIENT') {
+        // Redirect non-clients to their appropriate dashboard
+        if (currentUser.role === 'ADMIN') {
+          router.push('/dashboard/admin');
+        } else if (currentUser.role === 'STAFF') {
+          router.push('/dashboard/staff');
+        }
+      }
     }
-  }, [currentUser, router]);
+  }, [currentUser, isLoading, router]);
 
-  if (!currentUser || currentUser.role !== 'CLIENT') {
-    return null;
+  // Show loading state or nothing if user shouldn't access this layout
+  if (isLoading || !currentUser || currentUser.role !== 'CLIENT') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        {isLoading ? <div className="animate-pulse text-lg">Loading...</div> : null}
+      </div>
+    );
   }
 
   const links = [
     { href: '/client/dashboard', label: 'My Dashboard', icon: Briefcase as React.ComponentType<{ className: string }> },
-    { href: '/client/cases', label: 'My Cases', icon: Briefcase as React.ComponentType<{ className: string }> },
+    { href: '/client/cases', label: 'My Cases', icon: FileText as React.ComponentType<{ className: string }> },
     { href: '/client/practitioners', label: 'Practitioners', icon: Users as React.ComponentType<{ className: string }> },
   ];
 
@@ -59,7 +74,7 @@ export default function ClientLayout({
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <CollapsibleSidebar links={links.map(link => ({ ...link, icon: link.icon as React.ComponentType<{ className: string }> }))} role={currentUser.role} />
+        <CollapsibleSidebar links={links} role={currentUser.role} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

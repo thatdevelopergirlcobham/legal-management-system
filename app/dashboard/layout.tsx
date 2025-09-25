@@ -12,17 +12,27 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { currentUser, logout } = useData();
+  const { currentUser, logout, isLoading } = useData();
   const router = useRouter();
 
   useEffect(() => {
-    if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'STAFF')) {
-      router.push('/admin/login');
+    // If loading is complete and user is not logged in or is a client, redirect appropriately
+    if (!isLoading) {
+      if (!currentUser) {
+        router.push('/');
+      } else if (currentUser.role === 'CLIENT') {
+        router.push('/client/dashboard');
+      }
     }
-  }, [currentUser, router]);
+  }, [currentUser, isLoading, router]);
 
-  if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'STAFF')) {
-    return null;
+  // Show loading state or nothing if user shouldn't access this layout
+  if (isLoading || !currentUser || currentUser.role === 'CLIENT') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        {isLoading ? <div className="animate-pulse text-lg">Loading...</div> : null}
+      </div>
+    );
   }
 
   const links = [
@@ -38,7 +48,9 @@ export default function DashboardLayout({
         <div className="flex items-center space-x-4">
           <Briefcase className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            <Link href="/dashboard">Legal CMS - Practitioner</Link>
+            <Link href="/dashboard">
+              Legal CMS - {currentUser.role === 'ADMIN' ? 'Admin' : 'Staff'}
+            </Link>
           </h1>
         </div>
         <div className="flex items-center space-x-4">

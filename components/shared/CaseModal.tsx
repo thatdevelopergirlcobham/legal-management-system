@@ -1,10 +1,10 @@
 'use client';
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Case } from '@/types';
+import { ICase } from '@/lib/mockData';
 import { useData } from '@/context/DataContext';
 
-export const CaseModal = ({ caseData, onClose, onSave }: { caseData?: Case; onClose: () => void; onSave: (data: Omit<Case, 'id' | 'createdAt' | 'updatedAt'> | Case) => void }) => {
+export const CaseModal = ({ caseData, onClose, onSave }: { caseData?: ICase; onClose: () => void; onSave: (data: Omit<ICase, '_id' | 'createdAt' | 'updatedAt'>) => void }) => {
   const { currentUser, users } = useData();
   const [formData, setFormData] = React.useState({
     caseNumber: caseData?.caseNumber || '',
@@ -12,7 +12,7 @@ export const CaseModal = ({ caseData, onClose, onSave }: { caseData?: Case; onCl
     description: caseData?.description || '',
     status: caseData?.status || 'Open',
     clientId: caseData?.clientId || '',
-    staffId: caseData?.staffId || (currentUser?.role === 'STAFF' ? currentUser?.id : ''),
+    staffId: caseData?.staffId || (currentUser?.role === 'STAFF' ? currentUser?._id : ''),
   });
 
   const clients = users.filter(u => u.role === 'CLIENT');
@@ -81,7 +81,7 @@ export const CaseModal = ({ caseData, onClose, onSave }: { caseData?: Case; onCl
               >
                 <option value="">Select Client</option>
                 {clients.map(client => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
+                  <option key={client._id} value={client._id}>{client.name}</option>
                 ))}
               </select>
             </div>
@@ -96,13 +96,13 @@ export const CaseModal = ({ caseData, onClose, onSave }: { caseData?: Case; onCl
                 >
                   <option value="">Select Staff</option>
                   {staff.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s._id} value={s._id}>{s.name}</option>
                   ))}
                 </select>
               ) : (
                 <input
                   type="text"
-                  value={staff.find(s => s.id === formData.staffId)?.name || 'Unknown'}
+                  value={staff.find(s => s._id === formData.staffId)?.name || 'Unknown'}
                   className="w-full p-2 border rounded-md text-slate-200 bg-secondary"
                   disabled
                 />

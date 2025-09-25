@@ -1,18 +1,63 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useData } from '@/context/DataContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ChatSession } from '@/components/chat/ChatSession';
+import { IUser } from '@/lib/mockData';
 
 export const StaffDashboard = () => {
   const { cases, currentUser, findUserById } = useData();
-  const myCases = cases.filter(c => c.staffId === currentUser?.id);
+  const myCases = cases.filter(c => c.staffId === currentUser?._id);
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
+  const [clientNames, setClientNames] = useState<Record<string, string>>({});
+  const [selectedClientName, setSelectedClientName] = useState<string>('Client');
+  
   const selectedClientId = selectedCase 
-    ? cases.find(c => c.id === selectedCase)?.clientId 
+    ? cases.find(c => c._id === selectedCase)?.clientId 
     : null;
+
+  // Load client names when component mounts
+  useEffect(() => {
+    const loadClientNames = async () => {
+      if (!myCases.length) return;
+      
+      const clientIds = Array.from(new Set(myCases.map(c => c.clientId)));
+      const namesMap: Record<string, string> = {};
+      
+      for (const id of clientIds) {
+        try {
+          const client = await findUserById(id);
+          namesMap[id] = client ? client.name : 'Unknown';
+        } catch (error) {
+          console.error(`Error fetching client ${id}:`, error);
+          namesMap[id] = 'Unknown';
+        }
+      }
+      
+      setClientNames(namesMap);
+    };
+    
+    loadClientNames();
+  }, [myCases, findUserById]);
+
+  // Update selected client name when selectedClientId changes
+  useEffect(() => {
+    const updateSelectedClientName = async () => {
+      if (!selectedClientId) return;
+      
+      try {
+        const client = await findUserById(selectedClientId);
+        setSelectedClientName(client ? client.name : 'Client');
+      } catch (error) {
+        console.error('Error fetching selected client:', error);
+        setSelectedClientName('Client');
+      }
+    };
+    
+    updateSelectedClientName();
+  }, [selectedClientId, findUserById]);
 
   return (
     <div className="space-y-6">
@@ -65,15 +110,15 @@ export const StaffDashboard = () => {
                 {myCases.length > 0 ? (
                   myCases.map((c) => (
                     <TableRow 
-                      key={c.id}
+                      key={c._id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedCase(c.id === selectedCase ? null : c.id)}
+                      onClick={() => setSelectedCase(c._id === selectedCase ? null : c._id)}
                     >
                       <TableCell className="font-medium">{c.caseNumber}</TableCell>
                       <TableCell>{c.title}</TableCell>
                       <TableCell>{c.status}</TableCell>
-                      <TableCell>{findUserById(c.clientId)?.name || 'Unknown'}</TableCell>
-                      <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{clientNames[c.clientId] || 'Loading...'}</TableCell>
+                      <TableCell>{c.updatedAt ? format(new Date(c.updatedAt), 'MMM d, yyyy') : 'N/A'}</TableCell>
                     </TableRow>
                   ))
                 ) : (
@@ -91,7 +136,7 @@ export const StaffDashboard = () => {
         {selectedCase && selectedClientId && (
           <div className="lg:col-span-1">
             <h3 className="text-xl font-semibold">
-              Chat with {findUserById(selectedClientId)?.name}
+              Chat with {selectedClientName}
             </h3>
             <div className="h-[600px]">
               <ChatSession otherUserId={selectedClientId} />

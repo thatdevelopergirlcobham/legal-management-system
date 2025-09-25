@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useData } from '@/context/DataContext';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,22 +7,44 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { CaseModal } from '@/components/shared/CaseModal';
 import { DeleteConfirmationModal } from '@/components/shared/DeleteConfirmationModal';
-import { Case } from '@/types';
+import { ICase } from '@/lib/mockData';
 
 export default function CasesPage() {
   const { cases, users, currentUser, createCase, updateCase, deleteCase } = useData();
   const [showForm, setShowForm] = useState(false);
   const [editingCase, setEditingCase] = useState<string | null>(null);
   const [deleteCaseId, setDeleteCaseId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
-  const handleSubmit = (caseData: Omit<Case, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editingCase) {
-      updateCase(editingCase, caseData);
-    } else {
-      createCase(caseData);
+  // Load user names when component mounts
+  useEffect(() => {
+    const loadUserNames = async () => {
+      const namesMap: Record<string, string> = {};
+      users.forEach(user => {
+        namesMap[user._id] = user.name;
+      });
+      setUserNames(namesMap);
+    };
+    
+    loadUserNames();
+  }, [users]);
+
+  const handleSubmit = async (caseData: Omit<ICase, '_id' | 'createdAt' | 'updatedAt'>) => {
+    setIsLoading(true);
+    try {
+      if (editingCase) {
+        await updateCase(editingCase, caseData);
+      } else {
+        await createCase(caseData);
+      }
+      setShowForm(false);
+      setEditingCase(null);
+    } catch (error) {
+      console.error('Error saving case:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setShowForm(false);
-    setEditingCase(null);
   };
 
   const handleEdit = (caseId: string) => {
@@ -34,16 +56,22 @@ export default function CasesPage() {
     setDeleteCaseId(caseId);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteCaseId) {
-      deleteCase(deleteCaseId);
-      setDeleteCaseId(null);
+      setIsLoading(true);
+      try {
+        await deleteCase(deleteCaseId);
+        setDeleteCaseId(null);
+      } catch (error) {
+        console.error('Error deleting case:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.name : 'Unknown';
+    return userNames[userId] || 'Unknown';
   };
 
   return (
@@ -58,7 +86,7 @@ export default function CasesPage() {
 
       {showForm && (
         <CaseModal 
-          caseData={editingCase ? cases.find(c => c.id === editingCase) : undefined} 
+          caseData={editingCase ? cases.find(c => c._id === editingCase) : undefined} 
           onClose={() => {
             setShowForm(false);
             setEditingCase(null);
@@ -91,19 +119,20 @@ export default function CasesPage() {
           <TableBody>
             {cases.length > 0 ? (
               cases.map((c) => (
-                <TableRow key={c.id}>
+                <TableRow key={c._id}>
                   <TableCell className="font-medium">{c.caseNumber}</TableCell>
                   <TableCell>{c.title}</TableCell>
                   <TableCell>{c.status}</TableCell>
                   <TableCell>{getUserName(c.clientId)}</TableCell>
                   <TableCell>{getUserName(c.staffId)}</TableCell>
-                  <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
+                  <TableCell>{c.updatedAt ? format(new Date(c.updatedAt), 'MMM d, yyyy') : 'N/A'}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEdit(c.id)}
+                        onClick={() => handleEdit(c._id)}
+                        disabled={isLoading}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -111,7 +140,8 @@ export default function CasesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(c.id)}
+                          onClick={() => handleDelete(c._id)}
+                          disabled={isLoading}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>

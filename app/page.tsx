@@ -1,7 +1,41 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import { Briefcase, User, Shield } from 'lucide-react';
+import { useData } from '@/context/DataContext';
 
 export default function HomePage() {
+  const { currentUser, isLoading } = useData();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && currentUser) {
+      // Redirect based on user role
+      switch (currentUser.role) {
+        case 'ADMIN':
+          router.push('/dashboard/admin');
+          break;
+        case 'STAFF':
+          router.push('/dashboard/staff');
+          break;
+        case 'CLIENT':
+          router.push('/client/dashboard');
+          break;
+      }
+    }
+  }, [currentUser, isLoading, router]);
+
+  // If still loading or redirecting, don't render content yet
+  if (isLoading || currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
       <div className="w-full max-w-5xl text-center space-y-10">
@@ -37,4 +71,4 @@ export default function HomePage() {
       </div>
     </main>
   );
-};
+}

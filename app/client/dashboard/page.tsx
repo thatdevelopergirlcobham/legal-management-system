@@ -3,15 +3,29 @@ import { useData } from '@/context/DataContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
 
 export default function ClientDashboard() {
   const { cases, currentUser, findUserById } = useData();
-  const myCases = cases.filter(c => c.clientId === currentUser?.id);
+  const myCases = cases.filter(c => c.clientId === currentUser?._id);
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
 
-  const getStaffName = (staffId: string) => {
-    const staff = findUserById(staffId);
-    return staff ? staff.name : 'Unknown';
-  };
+  // Load staff names when component mounts
+  useEffect(() => {
+    const loadStaffNames = async () => {
+      const staffIds = Array.from(new Set(myCases.map(c => c.staffId)));
+      const namesMap: Record<string, string> = {};
+      
+      for (const id of staffIds) {
+        const staff = await findUserById(id);
+        namesMap[id] = staff ? staff.name : 'Unknown';
+      }
+      
+      setStaffNames(namesMap);
+    };
+    
+    loadStaffNames();
+  }, [myCases, findUserById]);
 
   return (
     <div className="space-y-6">
@@ -37,12 +51,12 @@ export default function ClientDashboard() {
               <TableBody>
                 {myCases.length > 0 ? (
                   myCases.map((c) => (
-                    <TableRow key={c.id}>
+                    <TableRow key={c._id}>
                       <TableCell className="font-medium">{c.caseNumber}</TableCell>
                       <TableCell>{c.title}</TableCell>
                       <TableCell>{c.status}</TableCell>
-                      <TableCell>{getStaffName(c.staffId)}</TableCell>
-                      <TableCell>{format(new Date(c.updatedAt), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{staffNames[c.staffId] || 'Loading...'}</TableCell>
+                      <TableCell>{c.updatedAt ? format(new Date(c.updatedAt), 'MMM d, yyyy') : 'N/A'}</TableCell>
                     </TableRow>
                   ))
                 ) : (

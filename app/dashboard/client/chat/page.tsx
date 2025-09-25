@@ -1,24 +1,57 @@
 'use client';
 import { useData } from '@/context/DataContext';
-import { useSession } from 'next-auth/react';
 import { ChatSession } from '@/components/chat/ChatSession';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { IUser } from '@/lib/mockData';
 
 export default function ClientChatPage() {
-  const { data: session } = useSession();
   const { cases, currentUser, findUserById } = useData();
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [assignedStaff, setAssignedStaff] = useState<IUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Get all staff assigned to client's cases
-  const assignedStaff = Array.from(
-    new Set(
-      cases
-        .filter(c => c.clientId === currentUser?.id)
-        .map(c => c.staffId)
-    )
-  ).map(staffId => findUserById(staffId)).filter(Boolean);
+  // Load staff data when component mounts
+  useEffect(() => {
+    const loadStaffData = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // Get unique staff IDs from client's cases
+        const staffIds = Array.from(
+          new Set(
+            cases
+              .filter(c => c.clientId === currentUser._id)
+              .map(c => c.staffId)
+          )
+        );
+        
+        // Fetch staff data for each ID
+        const staffData: IUser[] = [];
+        for (const id of staffIds) {
+          const staff = await findUserById(id);
+          if (staff) staffData.push(staff);
+        }
+        
+        setAssignedStaff(staffData);
+      } catch (error) {
+        console.error('Error loading staff data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadStaffData();
+  }, [cases, currentUser, findUserById]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
+  
   if (!assignedStaff.length) {
     return (
       <Card>
@@ -26,7 +59,7 @@ export default function ClientChatPage() {
           <CardTitle>No assigned lawyers</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>You don't have any lawyers assigned to your cases yet.</p>
+          <p>You don&apos;t have any lawyers assigned to your cases yet.</p>
         </CardContent>
       </Card>
     );
@@ -42,9 +75,9 @@ export default function ClientChatPage() {
           <CardContent className="space-y-2">
             {assignedStaff.map(staff => (
               <div 
-                key={staff.id}
-                className={`p-3 rounded-lg cursor-pointer ${selectedStaffId === staff.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                onClick={() => setSelectedStaffId(staff.id)}
+                key={staff._id}
+                className={`p-3 rounded-lg cursor-pointer ${selectedStaffId === staff._id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                onClick={() => setSelectedStaffId(staff._id)}
               >
                 {staff.name}
               </div>
