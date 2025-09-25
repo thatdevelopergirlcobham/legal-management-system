@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/context/DataContext';
@@ -13,23 +14,24 @@ export default function ClientLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
-      const user = await login(email, password, 'client');
-      if (user && user.role === 'CLIENT') {
+      const user = await login(email, password, 'CLIENT');
+      if (user) {
         router.push('/client/dashboard');
-      } else {
-        setError('Invalid credentials or access denied. Only Client role allowed.');
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('An error occurred during login. Please try again.');
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -47,10 +49,11 @@ export default function ClientLogin() {
               <Input
                 id="email"
                 type="email"
-                placeholder="client@legalcms.com"
+                placeholder="client@legal.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -61,12 +64,13 @@ export default function ClientLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
               <Lock className="mr-2 h-4 w-4" />
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>
@@ -77,10 +81,12 @@ export default function ClientLogin() {
               Register here
             </Link>
             <br />
-            <Link href="/" className="text-primary hover:underline flex items-center justify-center mt-2"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Home</Link>
+            <Link href="/" className="text-primary hover:underline flex items-center justify-center mt-2">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Home
+            </Link>
           </p>
         </CardFooter>
       </Card>
     </div>
   );
-};
+}

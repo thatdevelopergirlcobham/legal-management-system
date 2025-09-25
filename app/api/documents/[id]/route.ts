@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import DocumentModel from '@/models/Document';
+import { findDocumentById, deleteDocument } from '@/lib/mockData';
 
 // GET /api/documents/[id] - Get a specific document
 export async function GET(
@@ -8,11 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-
-    const document = await DocumentModel.findById(params.id)
-      .populate('caseId', 'caseNumber title')
-      .populate('uploadedBy', 'name email');
+    const document = await findDocumentById(params.id);
 
     if (!document) {
       return NextResponse.json(
@@ -37,11 +32,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
+    const deleted = await deleteDocument(params.id);
 
-    const deletedDocument = await DocumentModel.findByIdAndDelete(params.id);
-
-    if (!deletedDocument) {
+    if (!deleted) {
       return NextResponse.json(
         { error: 'Document not found' },
         { status: 404 }

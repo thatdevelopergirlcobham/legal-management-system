@@ -14,7 +14,7 @@ interface IUserMethods {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-type UserModel = mongoose.Model<IUser, {}, IUserMethods>;
+type UserModel = mongoose.Model<IUser, object, IUserMethods>;
 
 const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {

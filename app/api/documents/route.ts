@@ -1,43 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import DocumentModel from '@/models/Document';
-import CaseModel from '@/models/Case';
-import UserModel from '@/models/User';
+import { getAllDocuments, createDocument, findCaseById, findUserById } from '@/lib/mockData';
 
 // GET /api/documents - Get all documents
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const { searchParams } = new URL(request.url);
     const caseId = searchParams.get('caseId');
     const uploadedBy = searchParams.get('uploadedBy');
 
-    const filter: any = {};
-    if (caseId) filter.caseId = caseId;
-    if (uploadedBy) filter.uploadedBy = uploadedBy;
+    let documents = await getAllDocuments();
 
-    const documents = await DocumentModel.find(filter)
-      .populate('caseId', 'caseNumber title')
-      .populate('uploadedBy', 'name email')
-      .sort({ uploadedAt: -1 });
+    // Apply filters
+    if (caseId) documents = documents.filter(d => d.caseId === caseId);
+    if (uploadedBy) documents = documents.filter(d => d.uploadedBy === uploadedBy);
 
-    // Convert to plain objects
-    const plainDocuments = documents.map(doc => ({
-      id: doc._id.toString(),
-      name: doc.name,
-      originalName: doc.originalName,
-      filePath: doc.filePath,
-      fileSize: doc.fileSize,
-      mimeType: doc.mimeType,
-      caseId: doc.caseId?._id?.toString() || doc.caseId,
-      uploadedBy: doc.uploadedBy?._id?.toString() || doc.uploadedBy,
-      uploadedAt: doc.uploadedAt?.toISOString(),
-      createdAt: doc.createdAt?.toISOString(),
-      updatedAt: doc.updatedAt?.toISOString()
-    }));
-
-    return NextResponse.json(plainDocuments);
+    return NextResponse.json(documents);
   } catch (error) {
     console.error('Error fetching documents:', error);
     return NextResponse.json(
@@ -50,8 +27,6 @@ export async function GET(request: NextRequest) {
 // POST /api/documents - Upload a new document
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { name, originalName, filePath, fileSize, mimeType, caseId, uploadedBy } = body;
 
@@ -64,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify case exists
-    const caseDoc = await CaseModel.findById(caseId);
+    const caseDoc = await findCaseById(caseId);
     if (!caseDoc) {
       return NextResponse.json(
         { error: 'Case not found' },
@@ -73,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user exists
-    const user = await UserModel.findById(uploadedBy);
+    const user = await findUserById(uploadedBy);
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -81,39 +56,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newDocument = new DocumentModel({
+    const newDocument = await createDocument({
       name,
       originalName,
       filePath,
       fileSize,
       mimeType,
       caseId,
-      uploadedBy
+      uploadedBy,
+      uploadedAt: new Date()
     });
 
-    await newDocument.save();
-
-    // Populate the response
-    const populatedDocument = await DocumentModel.findById(newDocument._id)
-      .populate('caseId', 'caseNumber title')
-      .populate('uploadedBy', 'name email');
-
-    // Convert to plain object
-    const plainDocument = {
-      id: populatedDocument._id.toString(),
-      name: populatedDocument.name,
-      originalName: populatedDocument.originalName,
-      filePath: populatedDocument.filePath,
-      fileSize: populatedDocument.fileSize,
-      mimeType: populatedDocument.mimeType,
-      caseId: populatedDocument.caseId?._id?.toString() || populatedDocument.caseId,
-      uploadedBy: populatedDocument.uploadedBy?._id?.toString() || populatedDocument.uploadedBy,
-      uploadedAt: populatedDocument.uploadedAt?.toISOString(),
-      createdAt: populatedDocument.createdAt?.toISOString(),
-      updatedAt: populatedDocument.updatedAt?.toISOString()
-    };
-
-    return NextResponse.json(plainDocument, { status: 201 });
+    return NextResponse.json(newDocument, { status: 201 });
   } catch (error) {
     console.error('Error creating document:', error);
     return NextResponse.json(

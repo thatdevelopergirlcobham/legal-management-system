@@ -49,7 +49,7 @@ const caseSchema = new Schema<ICase>(
 let CaseModel: mongoose.Model<ICase>;
 try {
   CaseModel = mongoose.models.Case || mongoose.model<ICase>('Case', caseSchema);
-} catch (error) {
+} catch  {
   // If models is not available, create the model directly
   CaseModel = mongoose.model<ICase>('Case', caseSchema);
 }

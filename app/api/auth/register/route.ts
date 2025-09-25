@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import UserModel from '@/models/User';
+import { createUser, findUserByEmail } from '@/lib/mockData';
 
 // POST /api/auth/register - Register a new user
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { name, email, password, role } = body;
 
@@ -27,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await UserModel.findOne({ email });
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -36,18 +33,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const newUser = new UserModel({
-      name,
-      email,
-      password,
-      role
-    });
+    const newUser = await createUser({ name, email, password, role });
 
-    await newUser.save();
-
-    // Return plain object without Mongoose properties
+    // Return user data
     const userResponse = {
-      id: newUser._id.toString(),
+      id: newUser._id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,

@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useData } from '@/context/DataContext';
@@ -20,12 +21,10 @@ export default function AdminLogin() {
   const { login } = useData();
 
   useEffect(() => {
-    // Check for success message from registration
     const message = searchParams.get('message');
     if (message) {
       setSuccessMessage(message);
-      // Clear the URL parameter
-      router.replace('/admin/login', undefined);
+      router.replace('/admin/login');
     }
   }, [searchParams, router]);
 
@@ -36,20 +35,12 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Use the actual form values for database authentication
-      const user = await login(email, password, 'practitioner');
+      const user = await login(email, password, 'ADMIN');
       if (user) {
         router.push('/dashboard/admin');
-      } else {
-        setError('Invalid email or password');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      if (error.message?.includes('MONGODB_URI')) {
-        setError('Database connection error. Please check your environment configuration.');
-      } else {
-        setError('An error occurred during login. Please try again.');
-      }
+      setError(error.message || 'An error occurred during login. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -69,14 +60,13 @@ export default function AdminLogin() {
               <p className="text-sm text-green-800">{successMessage}</p>
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="admin@legal.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -104,13 +94,18 @@ export default function AdminLogin() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <p className="text-sm text-muted-foreground text-center">
-            Don't have an account? <Link href="/admin/register" className="text-primary hover:underline flex items-center justify-center"><UserPlus className="h-4 w-4 mr-1" /> Register Admin</Link>
+            Don&apos;t have an account?{' '}
+            <Link href="/admin/register" className="text-primary hover:underline flex items-center justify-center">
+              <UserPlus className="h-4 w-4 mr-1" /> Register Admin
+            </Link>
           </p>
           <p className="text-sm text-muted-foreground text-center">
-            <Link href="/" className="text-primary hover:underline flex items-center justify-center"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Home</Link>
+            <Link href="/" className="text-primary hover:underline flex items-center justify-center">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Home
+            </Link>
           </p>
         </CardFooter>
       </Card>
     </div>
   );
-};
+}

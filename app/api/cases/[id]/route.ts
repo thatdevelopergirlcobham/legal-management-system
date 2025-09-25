@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import CaseModel from '@/models/Case';
-import UserModel from '@/models/User';
+import { findCaseById, updateCase, deleteCase, getAllCases, findUserById } from '@/lib/mockData';
 
 // GET /api/cases/[id] - Get a specific case
 export async function GET(
@@ -9,11 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-
-    const caseDoc = await CaseModel.findById(params.id)
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email');
+    const caseDoc = await findCaseById(params.id);
 
     if (!caseDoc) {
       return NextResponse.json(
@@ -22,20 +16,7 @@ export async function GET(
       );
     }
 
-    // Convert to plain object
-    const plainCase = {
-      id: caseDoc._id.toString(),
-      caseNumber: caseDoc.caseNumber,
-      title: caseDoc.title,
-      description: caseDoc.description,
-      status: caseDoc.status,
-      createdAt: caseDoc.createdAt?.toISOString(),
-      updatedAt: caseDoc.updatedAt?.toISOString(),
-      clientId: caseDoc.clientId?._id?.toString() || caseDoc.clientId,
-      staffId: caseDoc.staffId?._id?.toString() || caseDoc.staffId
-    };
-
-    return NextResponse.json(plainCase);
+    return NextResponse.json(caseDoc);
   } catch (error) {
     console.error('Error fetching case:', error);
     return NextResponse.json(
@@ -51,13 +32,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { caseNumber, title, description, status, clientId, staffId } = body;
 
     // Check if case exists
-    const existingCase = await CaseModel.findById(params.id);
+    const existingCase = await findCaseById(params.id);
     if (!existingCase) {
       return NextResponse.json(
         { error: 'Case not found' },
@@ -67,7 +46,8 @@ export async function PUT(
 
     // If case number is being changed, check if it's already taken
     if (caseNumber && caseNumber !== existingCase.caseNumber) {
-      const duplicateCase = await CaseModel.findOne({ caseNumber });
+      const allCases = await getAllCases();
+      const duplicateCase = allCases.find(c => c.caseNumber === caseNumber);
       if (duplicateCase) {
         return NextResponse.json(
           { error: 'Case number already exists' },
@@ -78,7 +58,7 @@ export async function PUT(
 
     // Verify client and staff exist if they're being updated
     if (clientId) {
-      const client = await UserModel.findById(clientId);
+      const client = await findUserById(clientId);
       if (!client) {
         return NextResponse.json(
           { error: 'Client not found' },
@@ -88,7 +68,7 @@ export async function PUT(
     }
 
     if (staffId) {
-      const staff = await UserModel.findById(staffId);
+      const staff = await findUserById(staffId);
       if (!staff) {
         return NextResponse.json(
           { error: 'Staff not found' },
@@ -97,35 +77,16 @@ export async function PUT(
       }
     }
 
-    const updatedCase = await CaseModel.findByIdAndUpdate(
-      params.id,
-      {
-        ...(caseNumber && { caseNumber }),
-        ...(title && { title }),
-        ...(description && { description }),
-        ...(status && { status }),
-        ...(clientId && { clientId }),
-        ...(staffId && { staffId })
-      },
-      { new: true, runValidators: true }
-    )
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email');
+    const updatedCase = await updateCase(params.id, {
+      ...(caseNumber && { caseNumber }),
+      ...(title && { title }),
+      ...(description && { description }),
+      ...(status && { status }),
+      ...(clientId && { clientId }),
+      ...(staffId && { staffId })
+    });
 
-    // Convert to plain object
-    const plainCase = {
-      id: updatedCase._id.toString(),
-      caseNumber: updatedCase.caseNumber,
-      title: updatedCase.title,
-      description: updatedCase.description,
-      status: updatedCase.status,
-      createdAt: updatedCase.createdAt?.toISOString(),
-      updatedAt: updatedCase.updatedAt?.toISOString(),
-      clientId: updatedCase.clientId?._id?.toString() || updatedCase.clientId,
-      staffId: updatedCase.staffId?._id?.toString() || updatedCase.staffId
-    };
-
-    return NextResponse.json(plainCase);
+    return NextResponse.json(updatedCase);
   } catch (error) {
     console.error('Error updating case:', error);
     return NextResponse.json(
@@ -141,11 +102,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
+    const deleted = await deleteCase(params.id);
 
-    const deletedCase = await CaseModel.findByIdAndDelete(params.id);
-
-    if (!deletedCase) {
+    if (!deleted) {
       return NextResponse.json(
         { error: 'Case not found' },
         { status: 404 }

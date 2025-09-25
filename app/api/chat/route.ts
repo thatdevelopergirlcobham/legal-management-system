@@ -1,30 +1,34 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '../../../lib/mongodb';
-import ChatMessage from '../../../models/ChatMessage';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../app/api/auth/[...nextauth]/route';
+import { createChatMessage, getChatMessagesBetweenUsers, findUserById } from '@/lib/mockData';
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { recipientId, content } = await request.json();
-  
-  await connectToDatabase();
-  
   try {
-    const newMessage = new ChatMessage({
-      sender: session.user.id,
+    const { recipientId, content } = await request.json();
+
+    if (!recipientId || !content) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // For now, we'll use a simple approach - assuming the sender is a valid user
+    // In a real app, you'd get this from authentication
+    const senderId = 'client-001'; // Default sender for demo purposes
+
+    // Verify recipient exists
+    const recipient = await findUserById(recipientId);
+    if (!recipient) {
+      return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+    }
+
+    const newMessage = await createChatMessage({
+      sender: senderId,
       recipient: recipientId,
-      content
+      content,
+      timestamp: new Date(),
+      read: false
     });
-    
-    await newMessage.save();
-    
+
     return NextResponse.json(newMessage);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to send message' },
       { status: 500 }
@@ -33,26 +37,22 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const otherUserId = searchParams.get('userId');
-  
-  await connectToDatabase();
-  
   try {
-    const messages = await ChatMessage.find({
-      $or: [
-        { sender: session.user.id, recipient: otherUserId },
-        { sender: otherUserId, recipient: session.user.id }
-      ]
-    }).sort({ timestamp: 1 });
-    
+    const { searchParams } = new URL(request.url);
+    const otherUserId = searchParams.get('userId');
+
+    if (!otherUserId) {
+      return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
+    }
+
+    // For now, we'll use a simple approach - assuming the current user is a valid user
+    // In a real app, you'd get this from authentication
+    const currentUserId = 'client-001'; // Default user for demo purposes
+
+    const messages = await getChatMessagesBetweenUsers(currentUserId, otherUserId);
+
     return NextResponse.json(messages);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch messages' },
       { status: 500 }

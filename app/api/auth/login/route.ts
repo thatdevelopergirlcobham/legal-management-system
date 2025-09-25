@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import UserModel from '@/models/User';
+import { findUserByEmail } from '@/lib/mockData';
 
 // POST /api/auth/login - Login user
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { email, password, roleType } = body;
 
@@ -26,8 +23,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user and include password for comparison
-    const user = await UserModel.findOne({ email }).select('+password');
+    // Map roleType to expected role
+    const expectedRole = roleType === 'practitioner' ? 'STAFF' : 'CLIENT';
+
+    // Find user and validate credentials
+    const user = await findUserByEmail(email, password, expectedRole);
 
     if (!user) {
       return NextResponse.json(
@@ -36,33 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Compare password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    // Validate role access
-    if (roleType === 'practitioner' && !['ADMIN', 'STAFF'].includes(user.role)) {
-      return NextResponse.json(
-        { error: 'Access denied. Practitioner role required.' },
-        { status: 403 }
-      );
-    }
-
-    if (roleType === 'client' && user.role !== 'CLIENT') {
-      return NextResponse.json(
-        { error: 'Access denied. Client role required.' },
-        { status: 403 }
-      );
-    }
-
-    // Return plain object without Mongoose properties
+    // Return user data
     const userResponse = {
-      id: user._id.toString(),
+      id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,

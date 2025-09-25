@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import AppointmentModel from '@/models/Appointment';
-import UserModel from '@/models/User';
-import CaseModel from '@/models/Case';
+import { findAppointmentById, updateAppointment, deleteAppointment, getAllAppointments, findUserById, findCaseById } from '@/lib/mockData';
 
 // GET /api/appointments/[id] - Get a specific appointment
 export async function GET(
@@ -10,12 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-
-    const appointment = await AppointmentModel.findById(params.id)
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email')
-      .populate('caseId', 'caseNumber title');
+    const appointment = await findAppointmentById(params.id);
 
     if (!appointment) {
       return NextResponse.json(
@@ -40,13 +32,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { title, description, date, duration, status, clientId, staffId, caseId, location, notes } = body;
 
     // Check if appointment exists
-    const existingAppointment = await AppointmentModel.findById(params.id);
+    const existingAppointment = await findAppointmentById(params.id);
     if (!existingAppointment) {
       return NextResponse.json(
         { error: 'Appointment not found' },
@@ -56,7 +46,7 @@ export async function PUT(
 
     // Verify client and staff exist if they're being updated
     if (clientId) {
-      const client = await UserModel.findById(clientId);
+      const client = await findUserById(clientId);
       if (!client) {
         return NextResponse.json(
           { error: 'Client not found' },
@@ -66,7 +56,7 @@ export async function PUT(
     }
 
     if (staffId) {
-      const staff = await UserModel.findById(staffId);
+      const staff = await findUserById(staffId);
       if (!staff) {
         return NextResponse.json(
           { error: 'Staff not found' },
@@ -77,7 +67,7 @@ export async function PUT(
 
     // Verify case exists if provided
     if (caseId) {
-      const caseDoc = await CaseModel.findById(caseId);
+      const caseDoc = await findCaseById(caseId);
       if (!caseDoc) {
         return NextResponse.json(
           { error: 'Case not found' },
@@ -92,14 +82,21 @@ export async function PUT(
       const appointmentDuration = duration || existingAppointment.duration;
       const appointmentStaffId = staffId || existingAppointment.staffId;
 
-      const conflictingAppointment = await AppointmentModel.findOne({
-        _id: { $ne: params.id },
-        staffId: appointmentStaffId,
-        date: {
-          $gte: new Date(appointmentDate.getTime() - appointmentDuration * 60000),
-          $lt: new Date(appointmentDate.getTime() + appointmentDuration * 60000)
-        },
-        status: { $ne: 'Cancelled' }
+      const allAppointments = await getAllAppointments();
+      const conflictingAppointment = allAppointments.find(apt => {
+        if (apt._id === params.id) return false;
+
+        const aptDate = new Date(apt.date);
+        const aptStart = aptDate.getTime();
+        const aptEnd = aptStart + apt.duration * 60000;
+        const newStart = appointmentDate.getTime();
+        const newEnd = newStart + appointmentDuration * 60000;
+
+        return apt.staffId === appointmentStaffId &&
+               apt.status !== 'Cancelled' &&
+               ((newStart >= aptStart && newStart < aptEnd) ||
+                (newEnd > aptStart && newEnd <= aptEnd) ||
+                (newStart <= aptStart && newEnd >= aptEnd));
       });
 
       if (conflictingAppointment) {
@@ -110,25 +107,18 @@ export async function PUT(
       }
     }
 
-    const updatedAppointment = await AppointmentModel.findByIdAndUpdate(
-      params.id,
-      {
-        ...(title && { title }),
-        ...(description && { description }),
-        ...(date && { date: new Date(date) }),
-        ...(duration && { duration }),
-        ...(status && { status }),
-        ...(clientId && { clientId }),
-        ...(staffId && { staffId }),
-        ...(caseId && { caseId }),
-        ...(location !== undefined && { location }),
-        ...(notes !== undefined && { notes })
-      },
-      { new: true, runValidators: true }
-    )
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email')
-      .populate('caseId', 'caseNumber title');
+    const updatedAppointment = await updateAppointment(params.id, {
+      ...(title && { title }),
+      ...(description && { description }),
+      ...(date && { date: new Date(date) }),
+      ...(duration && { duration }),
+      ...(status && { status }),
+      ...(clientId && { clientId }),
+      ...(staffId && { staffId }),
+      ...(caseId && { caseId }),
+      ...(location !== undefined && { location }),
+      ...(notes !== undefined && { notes })
+    });
 
     return NextResponse.json(updatedAppointment);
   } catch (error) {
@@ -146,11 +136,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
+    const deleted = await deleteAppointment(params.id);
 
-    const deletedAppointment = await AppointmentModel.findByIdAndDelete(params.id);
-
-    if (!deletedAppointment) {
+    if (!deleted) {
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }

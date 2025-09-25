@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongodb';
-import AppointmentModel from '@/models/Appointment';
-import UserModel from '@/models/User';
-import CaseModel from '@/models/Case';
+import { getAllAppointments, createAppointment, findUserById, findCaseById } from '@/lib/mockData';
 
 // GET /api/appointments - Get all appointments
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const clientId = searchParams.get('clientId');
@@ -16,42 +11,22 @@ export async function GET(request: NextRequest) {
     const caseId = searchParams.get('caseId');
     const date = searchParams.get('date');
 
-    const filter: { status?: string; clientId?: string; staffId?: string; caseId?: string; date?: { $gte: Date; $lt: Date } } = {};
-    if (status) filter.status = status;
-    if (clientId) filter.clientId = clientId;
-    if (staffId) filter.staffId = staffId;
-    if (caseId) filter.caseId = caseId;
+    let appointments = await getAllAppointments();
+
+    // Apply filters
+    if (status) appointments = appointments.filter(a => a.status === status);
+    if (clientId) appointments = appointments.filter(a => a.clientId === clientId);
+    if (staffId) appointments = appointments.filter(a => a.staffId === staffId);
+    if (caseId) appointments = appointments.filter(a => a.caseId === caseId);
     if (date) {
-      const startDate = new Date(date);
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1);
-      filter.date = { $gte: startDate, $lt: endDate };
+      const filterDate = new Date(date);
+      appointments = appointments.filter(a => {
+        const appointmentDate = new Date(a.date);
+        return appointmentDate.toDateString() === filterDate.toDateString();
+      });
     }
 
-    const appointments = await AppointmentModel.find(filter)
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email')
-      .populate('caseId', 'caseNumber title')
-      .sort({ date: 1 });
-
-    // Convert to plain objects
-    const plainAppointments = appointments.map(apt => ({
-      id: apt._id.toString(),
-      title: apt.title,
-      description: apt.description,
-      date: apt.date?.toISOString(),
-      duration: apt.duration,
-      status: apt.status,
-      clientId: apt.clientId?._id?.toString() || apt.clientId,
-      staffId: apt.staffId?._id?.toString() || apt.staffId,
-      caseId: apt.caseId?._id?.toString() || apt.caseId,
-      location: apt.location,
-      notes: apt.notes,
-      createdAt: apt.createdAt?.toISOString(),
-      updatedAt: apt.updatedAt?.toISOString()
-    }));
-
-    return NextResponse.json(plainAppointments);
+    return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return NextResponse.json(
@@ -64,8 +39,6 @@ export async function GET(request: NextRequest) {
 // POST /api/appointments - Create a new appointment
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
-
     const body = await request.json();
     const { title, description, date, duration, status, clientId, staffId, caseId, location, notes } = body;
 
@@ -78,8 +51,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify client and staff exist
-    const client = await UserModel.findById(clientId);
-    const staff = await UserModel.findById(staffId);
+    const client = await findUserById(clientId);
+    const staff = await findUserById(staffId);
 
     if (!client || !staff) {
       return NextResponse.json(
@@ -90,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Verify case exists if provided
     if (caseId) {
-      const caseDoc = await CaseModel.findById(caseId);
+      const caseDoc = await findCaseById(caseId);
       if (!caseDoc) {
         return NextResponse.json(
           { error: 'Case not found' },
@@ -101,13 +74,19 @@ export async function POST(request: NextRequest) {
 
     // Check for scheduling conflicts
     const appointmentDate = new Date(date);
-    const existingAppointment = await AppointmentModel.findOne({
-      staffId,
-      date: {
-        $gte: new Date(appointmentDate.getTime() - duration * 60000),
-        $lt: new Date(appointmentDate.getTime() + duration * 60000)
-      },
-      status: { $ne: 'Cancelled' }
+    const allAppointments = await getAllAppointments();
+    const existingAppointment = allAppointments.find(apt => {
+      const aptDate = new Date(apt.date);
+      const aptStart = aptDate.getTime();
+      const aptEnd = aptStart + apt.duration * 60000;
+      const newStart = appointmentDate.getTime();
+      const newEnd = newStart + duration * 60000;
+
+      return apt.staffId === staffId &&
+             apt.status !== 'Cancelled' &&
+             ((newStart >= aptStart && newStart < aptEnd) ||
+              (newEnd > aptStart && newEnd <= aptEnd) ||
+              (newStart <= aptStart && newEnd >= aptEnd));
     });
 
     if (existingAppointment) {
@@ -117,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newAppointment = new AppointmentModel({
+    const newAppointment = await createAppointment({
       title,
       description,
       date: appointmentDate,
@@ -130,32 +109,7 @@ export async function POST(request: NextRequest) {
       notes
     });
 
-    await newAppointment.save();
-
-    // Populate the response
-    const populatedAppointment = await AppointmentModel.findById(newAppointment._id)
-      .populate('clientId', 'name email')
-      .populate('staffId', 'name email')
-      .populate('caseId', 'caseNumber title');
-
-    // Convert to plain object
-    const plainAppointment = {
-      id: populatedAppointment._id.toString(),
-      title: populatedAppointment.title,
-      description: populatedAppointment.description,
-      date: populatedAppointment.date?.toISOString(),
-      duration: populatedAppointment.duration,
-      status: populatedAppointment.status,
-      clientId: populatedAppointment.clientId?._id?.toString() || populatedAppointment.clientId,
-      staffId: populatedAppointment.staffId?._id?.toString() || populatedAppointment.staffId,
-      caseId: populatedAppointment.caseId?._id?.toString() || populatedAppointment.caseId,
-      location: populatedAppointment.location,
-      notes: populatedAppointment.notes,
-      createdAt: populatedAppointment.createdAt?.toISOString(),
-      updatedAt: populatedAppointment.updatedAt?.toISOString()
-    };
-
-    return NextResponse.json(plainAppointment, { status: 201 });
+    return NextResponse.json(newAppointment, { status: 201 });
   } catch (error) {
     console.error('Error creating appointment:', error);
     return NextResponse.json(
